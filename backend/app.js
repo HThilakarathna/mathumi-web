@@ -144,6 +144,17 @@ function getSeedData(collection) {
       }
     ];
   }
+  if (collection === 'rental-categories') {
+    return [
+      { _id: 'rc1', name: 'Necklaces', image: '/hero-saree.png', hidden: false },
+      { _id: 'rc2', name: 'Earrings', image: '/hero-saree.png', hidden: false },
+      { _id: 'rc3', name: 'Bangles', image: '/hero-saree.png', hidden: false },
+      { _id: 'rc4', name: 'Bridal Sets', image: '/hero-saree.png', hidden: false },
+      { _id: 'rc5', name: 'Hair Accessories', image: '/hero-saree.png', hidden: false },
+      { _id: 'rc6', name: 'Waist Belts', image: '/hero-saree.png', hidden: false },
+      { _id: 'rc7', name: 'Other Jewellery Categories', image: '/hero-saree.png', hidden: false }
+    ];
+  }
   return [];
 }
 
@@ -226,6 +237,7 @@ generateCRUDRoutes('billing-categories');
 generateCRUDRoutes('billing-services');
 generateCRUDRoutes('customers');
 generateCRUDRoutes('rental-jewellery');
+generateCRUDRoutes('rental-categories');
 
 // ======================== BOOKINGS & INQUIRIES ========================
 

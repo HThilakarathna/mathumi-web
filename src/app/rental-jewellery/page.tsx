@@ -9,6 +9,14 @@ type JewelleryItem = {
   images?: string[];
   description: string;
   hidden?: boolean;
+  category?: string;
+};
+
+type CategoryItem = {
+  _id: string;
+  name: string;
+  image: string;
+  hidden?: boolean;
 };
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 
@@ -18,7 +26,10 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ||
 
 export default function RentalJewelleryPage() {
   const [items, setItems] = useState<JewelleryItem[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [selectedCategoryName, setSelectedCategoryName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   // Booking Modal State
@@ -50,8 +61,26 @@ export default function RentalJewelleryPage() {
   };
 
   useEffect(() => {
+    fetchCategories();
     fetchItems();
   }, []);
+
+  const fetchCategories = async () => {
+    setCategoriesLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/rental-categories`);
+      if (!res.ok) {
+        throw new Error(`Server status: ${res.status}`);
+      }
+      const data = await res.json();
+      const visibleCategories = Array.isArray(data) ? data.filter((cat: CategoryItem) => !cat.hidden) : [];
+      setCategories(visibleCategories);
+    } catch (err: any) {
+      console.error("Error fetching categories:", err);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  };
 
   const fetchItems = async () => {
     setLoading(true);
@@ -104,6 +133,7 @@ export default function RentalJewelleryPage() {
           phone,
           needDate,
           description: notes,
+          category: selectedItem.category || selectedCategoryName || "Premium Jewellery",
           jewelleryName: selectedItem.name,
           jewelleryNumber: selectedItem.jewelleryNumber,
           jewelleryImage: selectedItem.image,
@@ -212,11 +242,25 @@ export default function RentalJewelleryPage() {
             <div className="kolam-ornament font-bold">✦</div>
             <div className="kolam-line"></div>
           </div>
-          <p className="text-xs sm:text-sm text-[#4a2511]/60 font-sans uppercase tracking-widest font-semibold mt-2">Browse Our Exclusive Catalogue</p>
+          <p className="text-xs sm:text-sm text-[#4a2511]/60 font-sans uppercase tracking-widest font-semibold mt-2">
+            {selectedCategoryName ? `${selectedCategoryName} Collection` : "Browse Our Exclusive Catalogue"}
+          </p>
         </div>
 
+        {/* Breadcrumb / Back button if category is selected */}
+        {selectedCategoryName && (
+          <div className="mb-6 flex justify-start">
+            <button
+              onClick={() => setSelectedCategoryName(null)}
+              className="gold-button !py-2 !px-5 text-[10px] tracking-wider flex items-center gap-2 border border-[#7a5420]"
+            >
+              ← Back to Categories
+            </button>
+          </div>
+        )}
+
         {/* Loader, Error, Empty, and Grid States */}
-        {loading ? (
+        {loading || categoriesLoading ? (
           <div className="flex justify-center items-center py-24">
             <p className="text-[#800020] font-bold text-xl animate-pulse tracking-widest font-serif">
               UNVEILING ROYAL COLLECTION...
@@ -226,114 +270,158 @@ export default function RentalJewelleryPage() {
           <div className="text-center py-16 bg-[#f4e8d3]/50 border border-[#d4af37]/35 rounded-xl p-8 max-w-lg mx-auto shadow-sm">
             <p className="text-red-700 font-semibold mb-4">{error}</p>
             <button
-              onClick={fetchItems}
+              onClick={() => { fetchItems(); fetchCategories(); }}
               className="gold-button px-6 py-2 text-xs uppercase"
             >
               Retry
             </button>
           </div>
-        ) : items.length === 0 ? (
-          <div className="text-center py-20 bg-white/40 border border-[#d4af37]/20 rounded-2xl p-8 shadow-sm">
-            <p className="text-[#4a2511]/70 font-serif text-lg tracking-wide">
-              Our Rental Jewellery catalog is currently being updated.
-            </p>
-            <p className="text-sm text-gray-500 mt-2">
-              Please check back soon or contact us directly for inquiries.
-            </p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {items.map((item) => {
-              const imgs = getCardImages(item);
-              const currentIdx = cardImageIndex[item._id] ?? 0;
-              const hasMultiple = imgs.length > 1;
-              return (
-              <div
-                key={item._id}
-                className="gold-panel bg-white border border-[#c2a670]/15 overflow-hidden flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:-translate-y-1 h-full"
-              >
-                {/* Image Slider */}
-                <div className="relative w-full h-72 bg-[#fdf5eb] border-b border-[#d4af37]/20 overflow-hidden group">
+        ) : !selectedCategoryName ? (
+          /* Landing Categories View */
+          categories.length === 0 ? (
+            <div className="text-center py-20 bg-white/40 border border-[#d4af37]/20 rounded-2xl p-8 shadow-sm">
+              <p className="text-[#4a2511]/70 font-serif text-lg tracking-wide">
+                No categories available at the moment.
+              </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Please check back soon or contact us directly for inquiries.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
+              {categories.map((cat) => (
+                <div
+                  key={cat._id}
+                  onClick={() => setSelectedCategoryName(cat.name)}
+                  className="relative h-80 rounded-2xl overflow-hidden group shadow-lg border-2 border-[#d4af37]/35 cursor-pointer bg-white transition-all duration-500 hover:-translate-y-2 hover:shadow-[0_20px_40px_rgba(74,37,17,0.22)]"
+                >
                   <img
-                    src={imgs[currentIdx] || "/hero-saree.png"}
-                    alt={item.name}
-                    className="absolute inset-0 w-full h-full object-cover transition-all duration-500"
+                    src={cat.image || "/hero-saree.png"}
+                    alt={cat.name}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
-
-                  {/* ID Badge */}
-                  <div className="absolute top-3 left-3 bg-[#4a2511]/90 text-[#fdf5eb] text-[10px] font-sans font-bold px-3 py-1 rounded border border-[#d4af37]/30 tracking-widest uppercase shadow z-10">
-                    ID: {item.jewelleryNumber}
-                  </div>
-
-                  {/* Image counter badge */}
-                  {hasMultiple && (
-                    <div className="absolute top-3 right-3 bg-black/50 text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10">
-                      {currentIdx + 1} / {imgs.length}
-                    </div>
-                  )}
-
-                  {/* Left / Right arrows */}
-                  {hasMultiple && (
-                    <>
-                      <button
-                        onClick={(e) => prevCardImage(e, item._id, imgs.length)}
-                        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-[#1c1512]/60 hover:bg-[#4a2511]/90 text-white flex items-center justify-center shadow transition-all duration-200 opacity-0 group-hover:opacity-100"
-                        aria-label="Previous image"
-                      >
-                        &#8592;
-                      </button>
-                      <button
-                        onClick={(e) => nextCardImage(e, item._id, imgs.length)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-[#1c1512]/60 hover:bg-[#4a2511]/90 text-white flex items-center justify-center shadow transition-all duration-200 opacity-0 group-hover:opacity-100"
-                        aria-label="Next image"
-                      >
-                        &#8594;
-                      </button>
-
-                      {/* Dot indicators */}
-                      <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 z-10">
-                        {imgs.map((_, dotIdx) => (
-                          <button
-                            key={dotIdx}
-                            onClick={(e) => { e.stopPropagation(); setCardImageIndex(prev => ({ ...prev, [item._id]: dotIdx })); }}
-                            className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${
-                              dotIdx === currentIdx ? 'bg-[#d4af37] w-3' : 'bg-white/60 hover:bg-white'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {/* Card Details */}
-                <div className="p-5 flex-grow flex flex-col justify-between pt-6">
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-serif text-[#4a2511] font-bold tracking-wide line-clamp-1 mb-2">
-                      {item.name}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#1c1512]/90 via-[#1c1512]/40 to-transparent" />
+                  <div className="absolute inset-4 border border-[#d4af37]/30 rounded-xl pointer-events-none transition-all duration-500 group-hover:inset-3 group-hover:border-[#d4af37]/65" />
+                  <div className="absolute bottom-6 left-6 right-6 text-center">
+                    <h3 className="text-lg sm:text-xl font-serif text-[#eacda3] font-bold tracking-widest uppercase transition-all duration-300 group-hover:text-white drop-shadow">
+                      {cat.name}
                     </h3>
-                    <p className="text-xs text-[#800020] font-sans uppercase font-bold tracking-widest mb-3">
-                      Premium Jewellery
-                    </p>
-                    <p className="text-sm text-[#4a2511]/70 font-sans leading-relaxed line-clamp-3 mb-6">
-                      {item.description || "Beautiful premium set to elevate your traditional bridal drape."}
-                    </p>
-                  </div>
-
-                  {/* Actions */}
-                  <div>
-                    <button
-                      onClick={() => handleOpenBooking(item)}
-                      className="gold-button w-full py-2.5 text-xs font-bold shadow-md uppercase tracking-wider"
-                    >
-                      Book Now
-                    </button>
+                    <span className="inline-block mt-2 text-[9px] sm:text-[10px] text-[#d4af37] font-sans font-bold tracking-[0.25em] uppercase border-t border-[#d4af37]/40 pt-2 px-4 opacity-0 group-hover:opacity-100 transition-all duration-500 transform translate-y-2 group-hover:translate-y-0">
+                      EXPLORE COLLECTION ✧
+                    </span>
                   </div>
                 </div>
+              ))}
+            </div>
+          )
+        ) : (
+          /* Selected Category Items View */
+          (() => {
+            const filteredItems = items.filter(item => item.category === selectedCategoryName);
+            return filteredItems.length === 0 ? (
+              <div className="text-center py-20 bg-white/40 border border-[#d4af37]/20 rounded-2xl p-8 shadow-sm">
+                <p className="text-[#4a2511]/70 font-serif text-lg tracking-wide">
+                  No items found in "{selectedCategoryName}" category.
+                </p>
+                <p className="text-sm text-gray-500 mt-2">
+                  We are updating this collection. Please select another category or check back later!
+                </p>
               </div>
-              );
-            })}
-          </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                {filteredItems.map((item) => {
+                  const imgs = getCardImages(item);
+                  const currentIdx = cardImageIndex[item._id] ?? 0;
+                  const hasMultiple = imgs.length > 1;
+                  return (
+                    <div
+                      key={item._id}
+                      className="gold-panel bg-white border border-[#c2a670]/15 overflow-hidden flex flex-col justify-between transition-all duration-300 hover:shadow-lg hover:-translate-y-1 h-full"
+                    >
+                      {/* Image Slider */}
+                      <div className="relative w-full h-72 bg-[#fdf5eb] border-b border-[#d4af37]/20 overflow-hidden group">
+                        <img
+                          src={imgs[currentIdx] || "/hero-saree.png"}
+                          alt={item.name}
+                          className="absolute inset-0 w-full h-full object-cover transition-all duration-500"
+                        />
+
+                        {/* ID Badge */}
+                        <div className="absolute top-3 left-3 bg-[#4a2511]/90 text-[#fdf5eb] text-[10px] font-sans font-bold px-3 py-1 rounded border border-[#d4af37]/30 tracking-widest uppercase shadow z-10">
+                          ID: {item.jewelleryNumber}
+                        </div>
+
+                        {/* Image counter badge */}
+                        {hasMultiple && (
+                          <div className="absolute top-3 right-3 bg-black/50 text-white text-[10px] font-bold px-2 py-0.5 rounded-full z-10">
+                            {currentIdx + 1} / {imgs.length}
+                          </div>
+                        )}
+
+                        {/* Left / Right arrows */}
+                        {hasMultiple && (
+                          <>
+                            <button
+                              onClick={(e) => prevCardImage(e, item._id, imgs.length)}
+                              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-[#1c1512]/60 hover:bg-[#4a2511]/90 text-white flex items-center justify-center shadow transition-all duration-200 opacity-0 group-hover:opacity-100"
+                              aria-label="Previous image"
+                            >
+                              &#8592;
+                            </button>
+                            <button
+                              onClick={(e) => nextCardImage(e, item._id, imgs.length)}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-[#1c1512]/60 hover:bg-[#4a2511]/90 text-white flex items-center justify-center shadow transition-all duration-200 opacity-0 group-hover:opacity-100"
+                              aria-label="Next image"
+                            >
+                              &#8594;
+                            </button>
+
+                            {/* Dot indicators */}
+                            <div className="absolute bottom-2 left-0 right-0 flex justify-center gap-1 z-10">
+                              {imgs.map((_, dotIdx) => (
+                                <button
+                                  key={dotIdx}
+                                  onClick={(e) => { e.stopPropagation(); setCardImageIndex(prev => ({ ...prev, [item._id]: dotIdx })); }}
+                                  className={`w-1.5 h-1.5 rounded-full transition-all duration-200 ${
+                                    dotIdx === currentIdx ? 'bg-[#d4af37] w-3' : 'bg-white/60 hover:bg-white'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Card Details */}
+                      <div className="p-5 flex-grow flex flex-col justify-between pt-6">
+                        <div>
+                          <h3 className="text-lg sm:text-xl font-serif text-[#4a2511] font-bold tracking-wide line-clamp-1 mb-2">
+                            {item.name}
+                          </h3>
+                          <p className="text-xs text-[#800020] font-sans uppercase font-bold tracking-widest mb-3">
+                            {selectedCategoryName}
+                          </p>
+                          <p className="text-sm text-[#4a2511]/70 font-sans leading-relaxed line-clamp-3 mb-6">
+                            {item.description || "Beautiful premium set to elevate your traditional bridal drape."}
+                          </p>
+                        </div>
+
+                        {/* Actions */}
+                        <div>
+                          <button
+                            onClick={() => handleOpenBooking(item)}
+                            className="gold-button w-full py-2.5 text-xs font-bold shadow-md uppercase tracking-wider"
+                          >
+                            Book Now
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()
         )}
 
         {/* Elegant Modal Form for Book Now */}
@@ -397,6 +485,9 @@ export default function RentalJewelleryPage() {
                         <p className="text-xs text-[#800020] font-sans font-bold uppercase mt-0.5 tracking-wider">
                           ID: {selectedItem.jewelleryNumber}
                         </p>
+                        <p className="text-[10px] text-[#4a2511]/60 font-sans uppercase font-bold tracking-wider mt-0.5">
+                          Category: {selectedItem.category || selectedCategoryName || "—"}
+                        </p>
                       </div>
                     </div>
 
@@ -432,11 +523,10 @@ export default function RentalJewelleryPage() {
 
                       <div>
                         <label className="block text-[#4a2511] font-sans font-bold text-[10px] tracking-wider uppercase mb-1">
-                          Need Date / Event Date *
+                          Need Date / Event Date (Optional)
                         </label>
                         <input
                           type="date"
-                          required
                           value={needDate}
                           onChange={(e) => setNeedDate(e.target.value)}
                           className="w-full p-2.5 border border-[#c2a670]/20 rounded bg-white text-xs text-[#4a2511] font-medium focus:outline-none focus:border-[#800020]"

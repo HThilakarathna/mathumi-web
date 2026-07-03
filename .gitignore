@@ -14,9 +14,10 @@
 /coverage
 
 # next.js
-/.next/*
-!/.next/static/
-!/.next/static/**
+/.next/
+
+# uploads
+backend/uploads/
 
 # (Allow committing local build output) - removed `/out/`
 

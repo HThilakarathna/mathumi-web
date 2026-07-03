@@ -1,0 +1,58 @@
+[
+  {
+    "name": "test",
+    "jewelleryNumber": "1234",
+    "image": "http://localhost:5000/uploads/1782966164635-433470121.png",
+    "description": "test",
+    "hidden": false,
+    "_id": "o4vm2cfmr300r1a",
+    "updatedAt": "2026-07-02T06:22:21.489Z",
+    "images": [
+      "http://localhost:5000/uploads/1782966164635-433470121.png",
+      "http://localhost:5000/uploads/1782967127232-478315425.png"
+    ]
+  },
+  {
+    "name": "test",
+    "jewelleryNumber": "1",
+    "image": "",
+    "images": [],
+    "description": "test",
+    "hidden": false,
+    "_id": "1ksqh21mr33pbgt"
+  },
+  {
+    "name": "Royal Emerald Choker",
+    "jewelleryNumber": "JW-101",
+    "image": "",
+    "images": [],
+    "description": "Stunning royal antique necklace",
+    "hidden": false,
+    "category": "Necklaces",
+    "_id": "ben70kumr3qic0w"
+  },
+  {
+    "name": "test",
+    "jewelleryNumber": "123",
+    "image": "http://localhost:5000/uploads/1783011677486-863508051.png",
+    "images": [
+      "http://localhost:5000/uploads/1783011677486-863508051.png"
+    ],
+    "description": "test",
+    "hidden": false,
+    "category": "Earrings",
+    "_id": "uxjuidwmr3r48or"
+  },
+  {
+    "name": "test",
+    "jewelleryNumber": "12399",
+    "image": "http://localhost:5000/uploads/1783012161639-179026733.png",
+    "images": [
+      "http://localhost:5000/uploads/1783012161639-179026733.png"
+    ],
+    "description": "",
+    "hidden": false,
+    "category": "Earrings",
+    "_id": "9am654zmr3reuqr"
+  }
+]

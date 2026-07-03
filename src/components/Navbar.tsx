@@ -64,7 +64,7 @@ export default function Navbar() {
             <Link href="/salon" className="text-[#4a2511] text-sm md:text-lg lg:text-xl font-serif font-bold tracking-widest hover:text-[#800020] transition-colors">SERVICES</Link>
             <Link href="/academy" className="text-[#4a2511] text-sm md:text-lg lg:text-xl font-serif font-bold tracking-widest hover:text-[#800020] transition-colors">ACADEMY</Link>
             <Link href="/gallery" className="text-[#4a2511] text-sm md:text-lg lg:text-xl font-serif font-bold tracking-widest hover:text-[#800020] transition-colors">GALLERY</Link>
-            <Link href="/rental-jewellery" className="text-[#4a2511] text-sm md:text-lg lg:text-xl font-serif font-bold tracking-widest hover:text-[#800020] transition-colors">JEWELLERY</Link>
+            <Link href="/rental-jewellery" className="text-[#4a2511] text-sm md:text-lg lg:text-xl font-serif font-bold tracking-widest hover:text-[#800020] transition-colors">RENTAL JEWELLERY</Link>
             
             {/* Booking Button */}
             <Link href="/booking" className="gold-button px-4 py-1 md:px-6 md:py-1.5 lg:px-8 lg:py-2 text-xs md:text-lg lg:text-xl rounded-full shadow-md font-sans">
@@ -219,7 +219,7 @@ export default function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="text-[#4a2511] text-lg font-serif font-bold tracking-widest hover:text-[#800020] transition-colors border-b border-[#d4af37]/20 pb-2"
               >
-                JEWELLERY
+                RENTAL JEWELLERY
               </Link>
 
               

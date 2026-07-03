@@ -1,0 +1,15 @@
+[
+  {
+    "_id": "rc1",
+    "name": "Necklaces",
+    "image": "http://localhost:5000/uploads/1783012202368-995320268.png",
+    "hidden": false,
+    "updatedAt": "2026-07-02T17:10:03.977Z"
+  },
+  {
+    "_id": "rc2",
+    "name": "Earrings",
+    "image": "/hero-saree.png",
+    "hidden": false
+  }
+]

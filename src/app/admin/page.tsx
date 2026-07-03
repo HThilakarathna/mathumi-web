@@ -9,7 +9,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ||
 
 export default function AdminDashboard() {
   const { showToast, ToastElement } = useToast();
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'inquiries' | 'manageSarees' | 'manageAcademy' | 'manageSalon' | 'manageCategories' | 'manageGallery' | 'manageStaff' | 'billingCategories' | 'billingServices' | 'billingCustomers' | 'billingPOS' | 'manageJewellery' | 'jewelleryBookings'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'inquiries' | 'manageSarees' | 'manageAcademy' | 'manageSalon' | 'manageCategories' | 'manageGallery' | 'manageStaff' | 'billingCategories' | 'billingServices' | 'billingCustomers' | 'billingPOS' | 'manageJewellery' | 'jewelleryBookings' | 'manageJewelleryCategories'>('dashboard');
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isPOSExpanded, setIsPOSExpanded] = useState(false);
 
@@ -23,7 +23,8 @@ export default function AdminDashboard() {
     image: '',
     images: [] as string[],
     description: '',
-    hidden: false
+    hidden: false,
+    category: ''
   });
   const [isEditingJewellery, setIsEditingJewellery] = useState(false);
   const [selectedJewellery, setSelectedJewellery] = useState<any>(null);
@@ -32,6 +33,23 @@ export default function AdminDashboard() {
   const [searchJewellery, setSearchJewellery] = useState('');
   const [statusFilterJewellery, setStatusFilterJewellery] = useState<'all' | 'visible' | 'hidden'>('all');
   const [sortJewellery, setSortJewellery] = useState<'name-asc' | 'name-desc' | 'number-asc' | 'number-desc'>('name-asc');
+  const [categoryFilterJewellery, setCategoryFilterJewellery] = useState('all');
+
+  // Rental Jewellery Categories state
+  const [rentalCategories, setRentalCategories] = useState<any[]>([]);
+  const [isJewelleryCategoryModalOpen, setIsJewelleryCategoryModalOpen] = useState(false);
+  const [jewelleryCategoryForm, setJewelleryCategoryForm] = useState({
+    _id: '',
+    name: '',
+    image: '/hero-saree.png',
+    hidden: false
+  });
+  const [isEditingJewelleryCategory, setIsEditingJewelleryCategory] = useState(false);
+  const [searchJewelleryCategory, setSearchJewelleryCategory] = useState('');
+  const [statusFilterJewelleryCategory, setStatusFilterJewelleryCategory] = useState<'all' | 'visible' | 'hidden'>('all');
+  const [selectedJewelleryCategory, setSelectedJewelleryCategory] = useState<any>(null);
+  const [isJewelleryCategoryViewModalOpen, setIsJewelleryCategoryViewModalOpen] = useState(false);
+  const [openJewelleryCategoryMenuId, setOpenJewelleryCategoryMenuId] = useState<string | null>(null);
 
   // Rental Bookings state
   const [rentalBookings, setRentalBookings] = useState<any[]>([]);
@@ -342,6 +360,17 @@ export default function AdminDashboard() {
     }
   };
 
+  const onDropJewelleryCategory = async (files: File[]) => {
+    if (!files || files.length === 0) {
+      showToast("Invalid file format. Please upload a valid image (JPG, PNG, WebP)!", "error");
+      return;
+    }
+    const url = await uploadImage(files[0]);
+    if (url) {
+      setJewelleryCategoryForm(p => ({ ...p, image: url }));
+    }
+  };
+
   const { getRootProps: getSareeProps, getInputProps: getSareeInput, isDragActive: isSareeDrag } = useDropzone({ 
     onDrop: onDropSaree, 
     accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'] },
@@ -378,6 +407,12 @@ export default function AdminDashboard() {
     accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'] },
     useFsAccessApi: false,
     multiple: true
+  });
+  const { getRootProps: getJewelleryCategoryProps, getInputProps: getJewelleryCategoryInput, isDragActive: isJewelleryCategoryDrag } = useDropzone({
+    onDrop: onDropJewelleryCategory,
+    accept: { 'image/*': ['.jpeg', '.jpg', '.png', '.gif', '.webp'] },
+    useFsAccessApi: false,
+    multiple: false
   });
 
   useEffect(() => {
@@ -426,7 +461,7 @@ export default function AdminDashboard() {
 
       const [
         bRes, iRes, sRes, aRes, salonRes, gRes, catRes, staffRes, billingCatRes, billingServRes, customerRes,
-        jewRes, jewBookRes
+        jewRes, jewBookRes, jewCatRes
       ] = await Promise.all([
         safeFetch(`${API}/api/bookings`, { headers: authHeaders }),
         safeFetch(`${API}/api/inquiries`, { headers: authHeaders }),
@@ -440,7 +475,8 @@ export default function AdminDashboard() {
         safeFetch(`${API}/api/billing-services`, { headers: authHeaders }),
         safeFetch(`${API}/api/customers`, { headers: authHeaders }),
         safeFetch(`${API}/api/rental-jewellery`),
-        safeFetch(`${API}/api/rental-bookings`, { headers: authHeaders })
+        safeFetch(`${API}/api/rental-bookings`, { headers: authHeaders }),
+        safeFetch(`${API}/api/rental-categories`)
       ]);
 
       if (bRes.status === 401 || bRes.status === 400) {
@@ -485,9 +521,12 @@ export default function AdminDashboard() {
 
       if (jewRes.ok) setRentalJewellery(await safeJson(jewRes, []));
       else console.warn('Rental Jewellery endpoint error:', jewRes.status);
-
+      
       if (jewBookRes.ok) setRentalBookings(await safeJson(jewBookRes, []));
       else console.warn('Rental Bookings endpoint error:', jewBookRes.status);
+
+      if (jewCatRes && jewCatRes.ok) setRentalCategories(await safeJson(jewCatRes, []));
+      else console.warn('Rental Categories endpoint error:', jewCatRes?.status);
     } catch (err: any) {
       console.error("Dashboard connection error:", err);
       setError(err.message || 'Failed to connect to the backend server. Please make sure the backend is running.');
@@ -1229,6 +1268,7 @@ export default function AdminDashboard() {
   };
 
   const openAddJewelleryModal = () => {
+    const defaultCat = rentalCategories.length > 0 ? rentalCategories[0].name : '';
     setJewelleryForm({
       _id: '',
       name: '',
@@ -1236,7 +1276,8 @@ export default function AdminDashboard() {
       image: '',
       images: [],
       description: '',
-      hidden: false
+      hidden: false,
+      category: defaultCat
     });
     setIsEditingJewellery(false);
     setIsJewelleryModalOpen(true);
@@ -1253,10 +1294,110 @@ export default function AdminDashboard() {
       image: item.image || (imgs[0] || ''),
       images: imgs,
       description: item.description || '',
-      hidden: !!item.hidden
+      hidden: !!item.hidden,
+      category: item.category || ''
     });
     setIsEditingJewellery(true);
     setIsJewelleryModalOpen(true);
+  };
+
+  // --- RENTAL JEWELLERY CATEGORY HANDLERS ---
+  const handleSaveJewelleryCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const token = localStorage.getItem('adminToken');
+    const url = isEditingJewelleryCategory 
+      ? `${API_BASE}/api/rental-categories/${jewelleryCategoryForm._id}` 
+      : `${API_BASE}/api/rental-categories`;
+    const method = isEditingJewelleryCategory ? 'PUT' : 'POST';
+
+    if (!jewelleryCategoryForm.name.trim()) {
+      showToast("Category name is required", 'error');
+      return;
+    }
+
+    const payload: any = { ...jewelleryCategoryForm };
+    if (!payload._id) delete payload._id;
+
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        showToast(isEditingJewelleryCategory ? "Category updated successfully!" : "Category added successfully!", 'success');
+        setIsJewelleryCategoryModalOpen(false);
+        fetchAllData(token!);
+      } else {
+        const errorData = await res.json().catch(() => ({}));
+        showToast("Failed to save category: " + (errorData.message || `Status ${res.status}`), 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Network error while saving category", 'error');
+    }
+  };
+
+  const handleDeleteJewelleryCategory = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this category? Any items belonging to this category will need category updates.")) return;
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch(`${API_BASE}/api/rental-categories/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showToast("Category deleted successfully!", 'success');
+        fetchAllData(token!);
+      } else {
+        showToast("Failed to delete category", 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Network error while deleting category", 'error');
+    }
+  };
+
+  const handleToggleHideJewelleryCategory = async (item: any) => {
+    const token = localStorage.getItem('adminToken');
+    try {
+      const res = await fetch(`${API_BASE}/api/rental-categories/${item._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ ...item, hidden: !item.hidden })
+      });
+      if (res.ok) {
+        showToast(item.hidden ? "Category is now visible!" : "Category is now hidden!", 'success');
+        fetchAllData(token!);
+      } else {
+        showToast("Failed to update status", 'error');
+      }
+    } catch (err) {
+      console.error(err);
+      showToast("Network error while updating status", 'error');
+    }
+  };
+
+  const openAddJewelleryCategoryModal = () => {
+    setJewelleryCategoryForm({
+      _id: '',
+      name: '',
+      image: '/hero-saree.png',
+      hidden: false
+    });
+    setIsEditingJewelleryCategory(false);
+    setIsJewelleryCategoryModalOpen(true);
+  };
+
+  const openEditJewelleryCategoryModal = (item: any) => {
+    setJewelleryCategoryForm({
+      _id: item._id || '',
+      name: item.name || '',
+      image: item.image || '/hero-saree.png',
+      hidden: !!item.hidden
+    });
+    setIsEditingJewelleryCategory(true);
+    setIsJewelleryCategoryModalOpen(true);
   };
 
   const handleUpdateRentalBookingStatus = async (id: string, status: string) => {
@@ -1337,6 +1478,7 @@ export default function AdminDashboard() {
             { key: 'manageGallery', label: '🖼️ Gallery' },
             { key: 'manageStaff', label: '👤 Staff Members' },
             { key: 'manageJewellery', label: '💎 Rental Jewellery' },
+            { key: 'manageJewelleryCategories', label: '🗂️ Jewellery Categories' },
             { key: 'jewelleryBookings', label: '📿 Jewellery Bookings' },
           ] as { key: string; label: string }[]).map(({ key, label }) => (
             <button 
@@ -1612,6 +1754,53 @@ export default function AdminDashboard() {
               </div>
             </div>
 
+            {/* Rental Categories Section */}
+            <div>
+              <h2 className="text-md font-serif font-bold text-[#4a2511] uppercase tracking-wider mb-4 border-b border-[#d4af37]/25 pb-2">Jewellery Categories Overview</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+                
+                {/* Total Categories */}
+                <div 
+                  onClick={() => setActiveTab('manageJewelleryCategories')}
+                  className="gold-panel p-6 text-center bg-white border border-[#c2a670]/15 shadow-sm hover:shadow-md hover:border-[#6e1224]/40 hover:-translate-y-0.5 cursor-pointer transition-all duration-300 relative flex flex-col justify-between min-h-[140px]"
+                >
+                  <div className="absolute top-2 right-2 bg-blue-100 text-blue-800 text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Total</div>
+                  <div>
+                    <h3 className="text-[10px] font-bold text-[#1c1512]/60 uppercase tracking-widest mb-1.5 mt-2">Total Categories</h3>
+                    <p className="text-4xl font-light text-[#4a2511] font-serif">{rentalCategories.length}</p>
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-3 border-t border-[#c2a670]/10 pt-2 font-medium">All item categories</div>
+                </div>
+
+                {/* Active Categories */}
+                <div 
+                  onClick={() => setActiveTab('manageJewelleryCategories')}
+                  className="gold-panel p-6 text-center bg-white border border-[#c2a670]/15 shadow-sm hover:shadow-md hover:border-[#6e1224]/40 hover:-translate-y-0.5 cursor-pointer transition-all duration-300 relative flex flex-col justify-between min-h-[140px]"
+                >
+                  <div className="absolute top-2 right-2 bg-green-100 text-green-800 text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Active</div>
+                  <div>
+                    <h3 className="text-[10px] font-bold text-[#1c1512]/60 uppercase tracking-widest mb-1.5 mt-2">Active Categories</h3>
+                    <p className="text-4xl font-light text-green-700 font-serif">{rentalCategories.filter(c => !c.hidden).length}</p>
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-3 border-t border-[#c2a670]/10 pt-2 font-medium">Visible to customers</div>
+                </div>
+
+                {/* Hidden Categories */}
+                <div 
+                  onClick={() => setActiveTab('manageJewelleryCategories')}
+                  className="gold-panel p-6 text-center bg-white border border-[#c2a670]/15 shadow-sm hover:shadow-md hover:border-[#6e1224]/40 hover:-translate-y-0.5 cursor-pointer transition-all duration-300 relative flex flex-col justify-between min-h-[140px]"
+                >
+                  <div className="absolute top-2 right-2 bg-gray-100 text-gray-800 text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider">Hidden</div>
+                  <div>
+                    <h3 className="text-[10px] font-bold text-[#1c1512]/60 uppercase tracking-widest mb-1.5 mt-2">Hidden Categories</h3>
+                    <p className="text-4xl font-light text-gray-600 font-serif">{rentalCategories.filter(c => c.hidden).length}</p>
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-3 border-t border-[#c2a670]/10 pt-2 font-medium">Unpublished categories</div>
+                </div>
+
+              </div>
+            </div>
+
             {/* Rental Jewellery Section */}
             <div>
               <h2 className="text-md font-serif font-bold text-[#4a2511] uppercase tracking-wider mb-4 border-b border-[#d4af37]/25 pb-2">Rental Jewellery Overview</h2>
@@ -1866,7 +2055,7 @@ export default function AdminDashboard() {
           </div>
         ) : activeTab === 'manageSarees' ? (
           <div className="flex flex-col h-full space-y-4">
-            <div className="flex justify-between items-center">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <h2 className="text-2xl font-bold font-serif text-[#4a2511]">Saree Catalog</h2>
               <button onClick={openAddModal} className="gold-button px-4 py-2 text-sm shadow">
                 + Add New Saree
@@ -1956,7 +2145,7 @@ export default function AdminDashboard() {
           </div>
         ) : activeTab === 'manageAcademy' ? (
           <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <h2 className="text-2xl font-bold font-serif text-[#4a2511]">Academy Courses</h2>
               <button onClick={openAddAcademyModal} className="gold-button px-4 py-2 text-sm shadow">
                 + Add Course
@@ -2040,7 +2229,7 @@ export default function AdminDashboard() {
           </div>
         ) : activeTab === 'manageSalon' ? (
           <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <h2 className="text-2xl font-bold text-[#4a2511]">Salon Services</h2>
               <button onClick={openAddServiceModal} className="gold-button px-4 py-2 text-sm shadow">
                 + Add Service
@@ -2111,7 +2300,7 @@ export default function AdminDashboard() {
           </div>
         ) : activeTab === 'manageCategories' ? (
           <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <h2 className="text-2xl font-bold text-[#4a2511]">Salon Categories</h2>
               <button onClick={openAddCategoryModal} className="gold-button px-4 py-2 text-sm shadow">
                 + Add Category
@@ -2180,7 +2369,7 @@ export default function AdminDashboard() {
           </div>
         ) : activeTab === 'manageGallery' ? (
           <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <h2 className="text-2xl font-bold text-[#4a2511]">Gallery Images</h2>
               <button onClick={openAddGalleryModal} className="gold-button px-4 py-2 text-sm shadow">
                 + Upload Image
@@ -2204,7 +2393,7 @@ export default function AdminDashboard() {
           </div>
         ) : activeTab === 'manageStaff' ? (
           <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
               <div>
                 <h2 className="text-2xl font-bold text-[#4a2511]">Staff Members</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Manage staff members for the beauty salon</p>
@@ -2331,7 +2520,7 @@ export default function AdminDashboard() {
             {/* Search, Filter, Sort Controls */}
             <div className="bg-[#fdf5eb]/50 p-4 rounded-xl border border-[#d4af37]/35 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between text-xs">
               <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-                <div className="flex flex-col gap-1 w-full sm:w-60">
+                <div className="flex flex-col gap-1 w-full sm:w-48">
                   <label className="font-semibold text-stone-600">Search Jewellery</label>
                   <input
                     type="text"
@@ -2342,6 +2531,19 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div className="flex flex-col gap-1 w-full sm:w-40">
+                  <label className="font-semibold text-stone-600">Filter Category</label>
+                  <select
+                    value={categoryFilterJewellery}
+                    onChange={e => setCategoryFilterJewellery(e.target.value)}
+                    className="p-2 border border-[#d4af37]/40 rounded bg-white outline-none focus:border-[#d4af37]"
+                  >
+                    <option value="all">All Categories</option>
+                    {rentalCategories.map(cat => (
+                      <option key={cat._id} value={cat.name}>{cat.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-col gap-1 w-full sm:w-32">
                   <label className="font-semibold text-stone-600">Filter Status</label>
                   <select
                     value={statusFilterJewellery}
@@ -2354,7 +2556,7 @@ export default function AdminDashboard() {
                   </select>
                 </div>
               </div>
-              <div className="flex flex-col gap-1 w-full md:w-auto sm:w-48">
+              <div className="flex flex-col gap-1 w-full md:w-auto sm:w-40">
                 <label className="font-semibold text-stone-600">Sort By</label>
                 <select
                   value={sortJewellery}
@@ -2376,6 +2578,7 @@ export default function AdminDashboard() {
                   <tr className="bg-[#f4e8d3] text-[#4a2511] border-b border-[#d4af37]">
                     <th className="p-3 text-xs">Image</th>
                     <th className="p-3 text-xs">Name</th>
+                    <th className="p-3 text-xs">Category</th>
                     <th className="p-3 text-xs">Code / Unique ID</th>
                     <th className="p-3 text-xs">Description</th>
                     <th className="p-3 text-xs">Status</th>
@@ -2395,7 +2598,11 @@ export default function AdminDashboard() {
                         statusFilterJewellery === 'visible' ? !item.hidden :
                         item.hidden;
 
-                      return matchesSearch && matchesStatus;
+                      const matchesCategory = 
+                        categoryFilterJewellery === 'all' ? true :
+                        item.category === categoryFilterJewellery;
+
+                      return matchesSearch && matchesStatus && matchesCategory;
                     })
                     .sort((a, b) => {
                       if (sortJewellery === 'name-asc') return (a.name || '').localeCompare(b.name || '');
@@ -2416,6 +2623,7 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                         <td className="p-3 font-semibold text-[#4a2511]">{item.name}</td>
+                        <td className="p-3 font-sans text-xs font-bold text-[#800020] uppercase">{item.category || '—'}</td>
                         <td className="p-3 font-mono text-xs font-bold text-[#800020]">{item.jewelleryNumber}</td>
                         <td className="p-3 text-xs text-gray-600 max-w-xs truncate" title={item.description}>{item.description || '—'}</td>
                         <td className="p-3">
@@ -2544,14 +2752,16 @@ export default function AdminDashboard() {
                 <thead>
                   <tr className="bg-[#f4e8d3] text-[#4a2511] border-b border-[#d4af37]">
                     <th className="p-3 text-xs">Booking ID</th>
-                    <th className="p-3 text-xs">Jewellery Set</th>
-                    <th className="p-3 text-xs">Code</th>
+                    <th className="p-3 text-xs">Category</th>
+                    <th className="p-3 text-xs">Jewellery Image</th>
+                    <th className="p-3 text-xs">Jewellery Name</th>
+                    <th className="p-3 text-xs">Jewellery Number</th>
                     <th className="p-3 text-xs">Customer Name</th>
                     <th className="p-3 text-xs">Address</th>
-                    <th className="p-3 text-xs">Phone</th>
-                    <th className="p-3 text-xs">Special Notes</th>
-                    <th className="p-3 text-xs">Need Date</th>
-                    <th className="p-3 text-xs">Status</th>
+                    <th className="p-3 text-xs">Phone Number</th>
+                    <th className="p-3 text-xs">Description</th>
+                    <th className="p-3 text-xs">Booking Date</th>
+                    <th className="p-3 text-xs">Booking Status</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -2568,24 +2778,24 @@ export default function AdminDashboard() {
                         b.customerName?.toLowerCase().includes(query) ||
                         b.jewelleryName?.toLowerCase().includes(query) ||
                         b.jewelleryNumber?.toLowerCase().includes(query) ||
-                        b.phone?.toLowerCase().includes(query)
+                        b.phone?.toLowerCase().includes(query) ||
+                        b.category?.toLowerCase().includes(query)
                       );
                     })
                     .map(b => (
                       <tr key={b._id} className="border-b border-[#eacda3] hover:bg-[#fdf5eb] text-sm">
-                        <td className="p-3 font-mono text-[11px] font-bold text-stone-500">#{b._id?.substring(0, 6)}</td>
+                        <td className="p-3 font-mono text-[11px] font-bold text-stone-500">#{b._id}</td>
+                        <td className="p-3 font-semibold text-xs text-[#800020] uppercase">{b.category || '—'}</td>
                         <td className="p-3">
-                          <div className="flex items-center gap-2">
-                            <img src={b.jewelleryImage || '/hero-saree.png'} alt="" className="w-8 h-8 object-cover rounded shadow-sm border border-[#d4af37]/20" />
-                            <span className="font-semibold">{b.jewelleryName}</span>
-                          </div>
+                          <img src={b.jewelleryImage || '/hero-saree.png'} alt="" className="w-10 h-10 object-cover rounded shadow-sm border border-[#d4af37]/20 bg-white" />
                         </td>
+                        <td className="p-3 font-semibold">{b.jewelleryName}</td>
                         <td className="p-3 font-mono text-xs font-bold text-[#800020]">{b.jewelleryNumber}</td>
                         <td className="p-3 font-medium">{b.customerName}</td>
                         <td className="p-3 text-xs text-gray-700 max-w-xs truncate" title={b.address}>{b.address}</td>
                         <td className="p-3 font-medium text-xs whitespace-nowrap">{b.phone}</td>
                         <td className="p-3 text-xs text-stone-500 max-w-xs truncate" title={b.description}>{b.description || '—'}</td>
-                         <td className="p-3 text-xs font-bold text-[#800020] whitespace-nowrap">
+                        <td className="p-3 text-xs font-bold text-[#800020] whitespace-nowrap">
                           {b.needDate ? new Date(b.needDate).toLocaleDateString('en-GB') : '—'}
                         </td>
                         <td className="p-3">
@@ -2609,8 +2819,139 @@ export default function AdminDashboard() {
                     ))}
                   {rentalBookings.length === 0 && (
                     <tr>
-                      <td colSpan={9} className="p-6 text-center text-sm text-gray-500">
+                      <td colSpan={11} className="p-6 text-center text-sm text-gray-500">
                         No rental bookings found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ) : activeTab === 'manageJewelleryCategories' ? (
+          <div>
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+              <div>
+                <h2 className="text-2xl font-bold font-serif text-[#4a2511]">Jewellery Categories</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Manage rental categories and status visibility</p>
+              </div>
+              <button onClick={openAddJewelleryCategoryModal} className="gold-button px-4 py-2 text-sm shadow">
+                + Add Category
+              </button>
+            </div>
+
+            {/* Search, Filter Controls */}
+            <div className="bg-[#fdf5eb]/50 p-4 rounded-xl border border-[#d4af37]/35 mb-6 flex flex-col sm:flex-row gap-4 items-center justify-between text-xs">
+              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+                <div className="flex flex-col gap-1 w-full sm:w-60">
+                  <label className="font-semibold text-stone-600">Search Categories</label>
+                  <input
+                    type="text"
+                    placeholder="Search by Category Name..."
+                    value={searchJewelleryCategory}
+                    onChange={e => setSearchJewelleryCategory(e.target.value)}
+                    className="p-2 border border-[#d4af37]/40 rounded bg-white outline-none focus:border-[#d4af37]"
+                  />
+                </div>
+                <div className="flex flex-col gap-1 w-full sm:w-40">
+                  <label className="font-semibold text-stone-600">Filter Status</label>
+                  <select
+                    value={statusFilterJewelleryCategory}
+                    onChange={e => setStatusFilterJewelleryCategory(e.target.value as any)}
+                    className="p-2 border border-[#d4af37]/40 rounded bg-white outline-none focus:border-[#d4af37]"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="visible">Visible Only</option>
+                    <option value="hidden">Hidden Only</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Categories Table */}
+            <div className="overflow-x-auto pb-32">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#f4e8d3] text-[#4a2511] border-b border-[#d4af37]">
+                    <th className="p-3 text-xs">Image</th>
+                    <th className="p-3 text-xs">Category Name</th>
+                    <th className="p-3 text-xs">Status</th>
+                    <th className="p-3 text-xs text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rentalCategories
+                    .filter(cat => {
+                      const query = searchJewelleryCategory.toLowerCase();
+                      const matchesSearch = cat.name?.toLowerCase().includes(query);
+                      const matchesStatus = 
+                        statusFilterJewelleryCategory === 'all' ? true :
+                        statusFilterJewelleryCategory === 'visible' ? !cat.hidden :
+                        cat.hidden;
+                      return matchesSearch && matchesStatus;
+                    })
+                    .map(cat => (
+                      <tr key={cat._id} className="border-b border-[#eacda3] hover:bg-[#fdf5eb] text-sm">
+                        <td className="p-3">
+                          <img src={cat.image || '/hero-saree.png'} alt={cat.name} className="w-12 h-12 object-cover rounded border border-[#d4af37]/35 bg-white shadow-sm" />
+                        </td>
+                        <td className="p-3 font-semibold text-[#4a2511]">{cat.name}</td>
+                        <td className="p-3">
+                          <span className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full border ${
+                            cat.hidden 
+                              ? 'bg-gray-100 text-gray-800 border-gray-300' 
+                              : 'bg-green-50 text-green-700 border-green-300'
+                          }`}>
+                            {cat.hidden ? 'Hidden' : 'Visible'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-right whitespace-nowrap relative">
+                          <button
+                            onClick={() => setOpenJewelleryCategoryMenuId(openJewelleryCategoryMenuId === cat._id ? null : cat._id)}
+                            className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[#fdf5eb] hover:bg-[#d4af37]/20 text-[#4a2511] hover:text-[#800020] transition-all duration-200 border border-[#d4af37]/30 hover:border-[#d4af37] shadow-sm flex-shrink-0"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                            </svg>
+                          </button>
+                          {openJewelleryCategoryMenuId === cat._id && (
+                            <>
+                              <div className="fixed inset-0 z-10" onClick={() => setOpenJewelleryCategoryMenuId(null)}></div>
+                              <div className="absolute right-full mr-2 top-0 w-36 bg-white rounded-md shadow-lg z-20 border border-gray-200 py-1 overflow-hidden text-left menu-popup">
+                                <button
+                                  onClick={() => { setOpenJewelleryCategoryMenuId(null); setSelectedJewelleryCategory(cat); setIsJewelleryCategoryViewModalOpen(true); }}
+                                  className="block w-full text-left px-4 py-2 text-sm text-[#4a2511] font-semibold hover:bg-[#fdf5eb]"
+                                >
+                                  View
+                                </button>
+                                <button
+                                  onClick={() => { setOpenJewelleryCategoryMenuId(null); openEditJewelleryCategoryModal(cat); }}
+                                  className="block w-full text-left px-4 py-2 text-sm text-[#4a2511] font-semibold hover:bg-[#fdf5eb]"
+                                >
+                                  Edit Info
+                                </button>
+                                <button
+                                  onClick={() => { setOpenJewelleryCategoryMenuId(null); handleToggleHideJewelleryCategory(cat); }}
+                                  className={`block w-full text-left px-4 py-2 text-sm font-semibold hover:bg-stone-50 ${cat.hidden ? 'text-green-700' : 'text-stone-700'}`}
+                                >
+                                  {cat.hidden ? 'Unhide' : 'Hide'}
+                                </button>
+                                <button
+                                  onClick={() => { setOpenJewelleryCategoryMenuId(null); handleDeleteJewelleryCategory(cat._id); }}
+                                  className="block w-full text-left px-4 py-2 text-sm text-red-600 font-semibold hover:bg-red-50"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  {rentalCategories.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="p-6 text-center text-sm text-gray-500">
+                        No categories found. Click "+ Add Category" to create one.
                       </td>
                     </tr>
                   )}
@@ -2668,20 +3009,20 @@ export default function AdminDashboard() {
           </div>
         ) : activeTab === 'billingServices' ? (
           <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <div>
                 <h2 className="text-2xl font-bold font-serif text-[#4a2511]">POS Services</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Manage services/products and commissions for internal billing</p>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <input 
                   type="text" 
                   placeholder="Search service/category..." 
                   value={searchBillingService} 
                   onChange={e => setSearchBillingService(e.target.value)} 
-                  className="p-2 border border-[#d4af37]/40 rounded bg-white text-xs outline-none w-64 focus:border-[#d4af37]"
+                  className="p-2 border border-[#d4af37]/40 rounded bg-white text-xs outline-none w-full sm:w-64 focus:border-[#d4af37]"
                 />
-                <button onClick={openAddBillingServiceModal} className="gold-button px-4 py-2 text-sm shadow">
+                <button onClick={openAddBillingServiceModal} className="gold-button px-4 py-2 text-sm shadow w-full sm:w-auto">
                   + Add Service
                 </button>
               </div>
@@ -3037,20 +3378,20 @@ export default function AdminDashboard() {
           </div>
         ) : activeTab === 'billingCustomers' ? (
           <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <div>
                 <h2 className="text-2xl font-bold font-serif text-[#4a2511]">POS Customer Directory</h2>
                 <p className="text-xs text-gray-500 mt-0.5">Manage customer details for POS invoice generation (deletion disabled to protect billing integrity)</p>
               </div>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                 <input 
                   type="text" 
                   placeholder="Search by name / WhatsApp..." 
                   value={searchCustomer} 
                   onChange={e => setSearchCustomer(e.target.value)} 
-                  className="p-2 border border-[#d4af37]/40 rounded bg-white text-xs outline-none w-64 focus:border-[#d4af37]"
+                  className="p-2 border border-[#d4af37]/40 rounded bg-white text-xs outline-none w-full sm:w-64 focus:border-[#d4af37]"
                 />
-                <button onClick={openAddCustomerModal} className="gold-button px-4 py-2 text-sm shadow">
+                <button onClick={openAddCustomerModal} className="gold-button px-4 py-2 text-sm shadow w-full sm:w-auto">
                   + Add Customer
                 </button>
               </div>
@@ -4189,6 +4530,21 @@ export default function AdminDashboard() {
             </h2>
             <form onSubmit={handleSaveJewellery} className="space-y-4">
               <div>
+                <label className="block text-sm font-semibold mb-1 text-[#4a2511]">Select Category *</label>
+                <select
+                  required
+                  className="w-full p-2.5 border border-[#d4af37] rounded bg-[#fdf5eb] text-sm focus:outline-none focus:ring-1 focus:ring-[#cba135] text-[#4a2511] font-semibold"
+                  value={jewelleryForm.category}
+                  onChange={e => setJewelleryForm({...jewelleryForm, category: e.target.value})}
+                >
+                  <option value="" disabled>-- Select a Category --</option>
+                  {rentalCategories.map(cat => (
+                    <option key={cat._id} value={cat.name}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-sm font-semibold mb-1 text-[#4a2511]">Jewellery Name *</label>
                 <input 
                   required 
@@ -4303,6 +4659,10 @@ export default function AdminDashboard() {
             <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto text-[#4a2511]">
               <div className="space-y-3">
                 <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Category</p>
+                  <p className="font-semibold text-sm uppercase text-[#800020]">{selectedJewellery.category || '—'}</p>
+                </div>
+                <div>
                   <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Jewellery Name</p>
                   <p className="font-bold text-base">{selectedJewellery.name}</p>
                 </div>
@@ -4344,6 +4704,105 @@ export default function AdminDashboard() {
             </div>
             <div className="px-6 py-4 bg-[#fdf5eb] border-t border-[#d4af37]/20 flex justify-end">
               <button onClick={() => setIsJewelleryViewModalOpen(false)} className="px-6 py-2 bg-gradient-to-r from-[#4a2511] to-[#800020] text-white rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity shadow-md">Close</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rental Jewellery Category Add/Edit Modal */}
+      {isJewelleryCategoryModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-[1000] p-4">
+          <div className="gold-panel p-8 w-full max-w-md relative max-h-[90vh] overflow-y-auto">
+            <button onClick={() => setIsJewelleryCategoryModalOpen(false)} className="absolute top-4 right-4 text-2xl font-bold text-[#4a2511] hover:text-[#800020] transition-colors">&times;</button>
+            <h2 className="text-2xl font-bold text-[#4a2511] mb-6 uppercase text-center border-b border-[#d4af37] pb-2 font-serif tracking-wider">
+              {isEditingJewelleryCategory ? 'Edit Category' : 'Add New Category'}
+            </h2>
+            <form onSubmit={handleSaveJewelleryCategory} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold mb-1 text-[#4a2511]">Category Name *</label>
+                <input 
+                  required 
+                  type="text" 
+                  className="w-full p-2.5 border border-[#d4af37] rounded bg-[#fdf5eb] text-sm focus:outline-none focus:ring-1 focus:ring-[#cba135] text-[#4a2511] font-semibold" 
+                  value={jewelleryCategoryForm.name} 
+                  onChange={e => setJewelleryCategoryForm({...jewelleryCategoryForm, name: e.target.value})} 
+                  placeholder="e.g. Necklaces"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold mb-1 text-[#4a2511]">Category Image *</label>
+                <p className="text-[10px] text-gray-400 mb-2">Upload category banner or representative photo.</p>
+                <div {...getJewelleryCategoryProps()} className={`border-2 border-dashed p-6 text-center cursor-pointer rounded bg-[#fdf5eb] transition ${isJewelleryCategoryDrag ? 'border-[#800020] bg-red-50' : 'border-[#d4af37] hover:border-[#800020]'}`}>
+                  <input {...getJewelleryCategoryInput()} />
+                  <p className="text-[#4a2511] text-xs font-semibold">{isJewelleryCategoryDrag ? 'Drop files here...' : '📷  Drag & drop image, or click to select'}</p>
+                  <p className="text-[10px] text-gray-500 mt-1">Supports JPG, PNG, WEBP · Single file only</p>
+                </div>
+                {jewelleryCategoryForm.image && (
+                  <div className="mt-4 flex justify-center">
+                    <div className="relative border-2 border-[#d4af37] rounded overflow-hidden">
+                      <img src={jewelleryCategoryForm.image} alt="Category preview" className="h-32 w-48 object-cover bg-white" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <input
+                  type="checkbox"
+                  id="category_hidden"
+                  checked={jewelleryCategoryForm.hidden}
+                  onChange={e => setJewelleryCategoryForm({...jewelleryCategoryForm, hidden: e.target.checked})}
+                  className="rounded border-[#d4af37] text-[#800020] focus:ring-[#cba135]"
+                />
+                <label htmlFor="category_hidden" className="text-xs font-bold text-[#4a2511] cursor-pointer selection:bg-transparent">
+                  Hide this category from the public website
+                </label>
+              </div>
+
+              <button type="submit" className="gold-button w-full mt-6 text-sm py-3.5 uppercase tracking-wider font-bold">
+                {isEditingJewelleryCategory ? 'Save Changes' : 'Publish Category'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Jewellery Category View Details Modal */}
+      {isJewelleryCategoryViewModalOpen && selectedJewelleryCategory && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center" onClick={() => setIsJewelleryCategoryViewModalOpen(false)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-2xl shadow-2xl border border-[#d4af37]/40 w-full max-w-md mx-4 overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="bg-gradient-to-r from-[#4a2511] to-[#800020] px-6 py-4 flex items-center justify-between">
+              <h3 className="text-white font-serif font-bold text-lg tracking-wide">🗂️ Jewellery Category Details</h3>
+              <button onClick={() => setIsJewelleryCategoryViewModalOpen(false)} className="text-white/80 hover:text-white text-2xl transition-colors">×</button>
+            </div>
+            <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto text-[#4a2511]">
+              <div className="space-y-3">
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Category Name</p>
+                  <p className="font-bold text-base">{selectedJewelleryCategory.name}</p>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold">Status</p>
+                  <span className={`inline-block text-[10px] font-bold px-2.5 py-0.5 rounded-full border mt-1 ${
+                    selectedJewelleryCategory.hidden 
+                      ? 'bg-gray-100 text-gray-800 border-gray-300' 
+                      : 'bg-green-50 text-green-700 border-green-300'
+                  }`}>
+                    {selectedJewelleryCategory.hidden ? 'Hidden' : 'Visible'}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-[10px] uppercase tracking-wider text-gray-400 font-semibold mb-2">Category Image</p>
+                  <div className="border border-[#d4af37]/35 rounded overflow-hidden flex justify-center max-w-xs mx-auto">
+                    <img src={selectedJewelleryCategory.image || '/hero-saree.png'} alt={selectedJewelleryCategory.name} className="w-full h-48 object-cover bg-white" />
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="px-6 py-4 bg-[#fdf5eb] border-t border-[#d4af37]/20 flex justify-end">
+              <button onClick={() => setIsJewelleryCategoryViewModalOpen(false)} className="px-6 py-2 bg-gradient-to-r from-[#4a2511] to-[#800020] text-white rounded-lg text-sm font-semibold hover:opacity-90 transition-opacity shadow-md">Close</button>
             </div>
           </div>
         </div>

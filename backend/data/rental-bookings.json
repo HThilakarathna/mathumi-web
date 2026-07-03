@@ -1,0 +1,56 @@
+[
+  {
+    "customerName": "Hasitha Thilakarathna",
+    "address": "56 mile post",
+    "phone": "0998877",
+    "description": "",
+    "jewelleryName": "test",
+    "jewelleryNumber": "123",
+    "jewelleryImage": "http://localhost:5000/uploads/1782966164635-433470121.png",
+    "_id": "am3ju2tmr301raw",
+    "status": "Cancelled",
+    "createdAt": "2026-07-02T04:23:33.752Z",
+    "updatedAt": "2026-07-02T04:23:57.992Z"
+  },
+  {
+    "customerName": "Hasitha Thilakarathna",
+    "address": "yuu",
+    "phone": "7888",
+    "description": "",
+    "jewelleryName": "test",
+    "jewelleryNumber": "1234",
+    "jewelleryImage": "http://localhost:5000/uploads/1782966164635-433470121.png",
+    "_id": "6w6hddzmr30m8vo",
+    "status": "Pending",
+    "createdAt": "2026-07-02T04:39:29.652Z"
+  },
+  {
+    "customerName": "Mathumi Tester",
+    "address": "789 Lotus Rd, Colombo",
+    "phone": "+94 77 111 2222",
+    "needDate": "60815-02-02",
+    "description": "Needed for evening reception",
+    "category": "Necklaces",
+    "jewelleryName": "Royal Emerald Choker",
+    "jewelleryNumber": "JW-101",
+    "jewelleryImage": "",
+    "_id": "124m6z1mr3qkcsy",
+    "status": "Contacted",
+    "createdAt": "2026-07-02T16:45:51.442Z",
+    "updatedAt": "2026-07-02T16:46:44.121Z"
+  },
+  {
+    "customerName": "Optional Date Test User",
+    "address": "456 Lotus St, Colombo",
+    "phone": "+94 77 123 4567",
+    "needDate": "",
+    "description": "Event date left blank",
+    "category": "Necklaces",
+    "jewelleryName": "Royal Emerald Choker",
+    "jewelleryNumber": "JW-101",
+    "jewelleryImage": "",
+    "_id": "b715hxvmr3rces1",
+    "status": "Pending",
+    "createdAt": "2026-07-02T17:07:40.369Z"
+  }
+]
